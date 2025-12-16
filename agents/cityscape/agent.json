@@ -1,0 +1,28 @@
+{
+  "capabilities": {},
+  "defaultInputModes": [
+    "text/plain"
+  ],
+  "defaultOutputModes": [
+    "text/plain"
+  ],
+  "description": "Creates AI-generated pictures of cities based on the current weather and their unique properties.",
+  "name": "cityscape_agent",
+  "preferredTransport": "JSONRPC",
+  "protocolVersion": "0.3.0",
+  "skills": [
+    {
+      "description": "Generate city images",
+      "id": "cityscape",
+      "name": "Cityscape",
+      "tags": [
+        "nano-banana",
+        "weather",
+        "maps-grounding"
+      ]
+    }
+  ],
+  "supportsAuthenticatedExtendedCard": false,
+  "url": "http://localhost:8000/a2a/cityscape",
+  "version": "0.0.1"
+}

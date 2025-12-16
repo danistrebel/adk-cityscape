@@ -1,0 +1,8 @@
+gemini_*.png
+.env
+.venv
+.adk
+__pycache__
+.vscode
+LOCAL_NOTES.md
+sessions.db

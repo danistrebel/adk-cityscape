@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "maps-grounding-lite-mcp": {
+      "httpUrl": "https://mapstools.googleapis.com/mcp",
+      "headers": {
+        "X-Goog-Api-Key": "${MAPS_API_KEY}"
+      }
+    }
+  }
+}
