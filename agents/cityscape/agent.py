@@ -3,12 +3,19 @@ from google.adk.tools.mcp_tool import McpToolset, StreamableHTTPConnectionParams
 from mcp import StdioServerParameters
 from google.adk.tools import google_search
 from google.adk.tools.tool_context import ToolContext
+from google.adk.agents.remote_a2a_agent import AGENT_CARD_WELL_KNOWN_PATH
+from google.adk.agents.remote_a2a_agent import RemoteA2aAgent
+from a2a.client import ClientFactory, ClientConfig
+from google.auth.transport.requests import Request
+from google.oauth2 import id_token
+import httpx
 
 import datetime
 from google.genai import types
 import os
+from urllib.parse import urlparse
 
-DEFAULT_MODEL='gemini-2.5-flash'
+DEFAULT_MODEL='gemini-3-flash-preview'
 NANO_BANANA_MODEL='gemini-3-pro-image-preview'
 
 get_weather = McpToolset(
@@ -107,8 +114,55 @@ city_drawer = LlmAgent(
     tools=[nano_banana, display_image_with_adk]
 )
 
-root_agent = SequentialAgent(
+class GoogleIdTokenAuth(httpx.Auth):
+    def __init__(self, audience: str):
+        self.audience = audience
+        self._tokens = {}
+
+    def auth_flow(self, request):        
+        token = id_token.fetch_id_token(Request(), audience=self.audience)
+        request.headers["Authorization"] = f"Bearer {token}"
+        yield request
+
+def get_cloud_run_client_factory(agent_path: str):
+    parsed_url = urlparse(agent_path)
+    service_uri = f"{parsed_url.scheme}://{parsed_url.netloc}"
+
+    async_client = httpx.AsyncClient(
+        timeout=httpx.Timeout(timeout=30),
+        auth=GoogleIdTokenAuth(service_uri),
+        headers={"Content-Type": "application/json"}
+    )
+    client_config = ClientConfig(httpx_client=async_client)
+    return ClientFactory(client_config)
+
+city_trip_agent = RemoteA2aAgent(
+    name="city_trip_agent",
+    description="Agent that can recommend city trips.",
+    a2a_client_factory=get_cloud_run_client_factory(os.environ["A2A_CITY_TRIP_URL"]),
+    agent_card=os.environ["A2A_CITY_TRIP_URL"]+AGENT_CARD_WELL_KNOWN_PATH,
+)
+
+cityscape_agent = SequentialAgent(
     name='cityscape_agent',
     description="Creates AI-generated pictures of cities based on the current weather and their unique properties.",
     sub_agents=[city_info, city_drawer],
+)
+
+root_agent = LlmAgent(
+    model=DEFAULT_MODEL,
+    name="root_agent",
+    instruction="""
+      <You are a helpful assistant that can motivate people to travel more
+      
+      If
+      1. The user is asking for a illustrated cityscape picture use the city_scape_agent to create a city scape with the current weather for a given city
+      2. The user is asking for general travel advice use the city_trip_agent to help them figure out where to go.
+      3. If the user asks something else explain your skills.
+      >
+    """,
+    sub_agents=[
+        cityscape_agent, 
+        city_trip_agent
+    ]
 )

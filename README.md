@@ -104,6 +104,9 @@ gcloud projects add-iam-policy-binding $PROJECT_ID \
 gcloud projects add-iam-policy-binding $PROJECT_ID \
     --member="serviceAccount:${SERVICE_ACCOUNT_NAME}@${PROJECT_ID}.iam.gserviceaccount.com" \
     --role="roles/monitoring.metricWriter"
+gcloud projects add-iam-policy-binding $PROJECT_ID \
+    --member="serviceAccount:${SERVICE_ACCOUNT_NAME}@${PROJECT_ID}.iam.gserviceaccount.com" \
+    --role="roles/run.servicesInvoker"
 ```
 
 ### Setup Maps API Key Secret
@@ -131,18 +134,24 @@ Follow the instructions here
 
 ```sh
 CLOUD_RUN_REGION=europe-west1
+PROJECT_NUMBER="$(gcloud projects describe $PROJECT_ID --format='value(projectNumber)')"
+A2A_CITY_TRIP_URL="https://city-trip-${PROJECT_NUMBER}.${CLOUD_RUN_REGION}.run.app/a2a/city_trip"
 
-gcloud run deploy cityscape-agent \
+gcloud run deploy cityscape \
 --source . \
 --region $CLOUD_RUN_REGION \
 --project $PROJECT_ID \
 --no-allow-unauthenticated \
 --service-account="${SERVICE_ACCOUNT_NAME}@${PROJECT_ID}.iam.gserviceaccount.com" \
---set-env-vars="GOOGLE_CLOUD_PROJECT=$PROJECT_ID,GOOGLE_CLOUD_LOCATION=global,GOOGLE_GENAI_USE_VERTEXAI=true,SERVE_WEB_INTERFACE=true" \
+--set-env-vars="GOOGLE_CLOUD_PROJECT=$PROJECT_ID,GOOGLE_CLOUD_LOCATION=global,GOOGLE_GENAI_USE_VERTEXAI=true,SERVE_WEB_INTERFACE=true,A2A_CITY_TRIP_URL=$A2A_CITY_TRIP_URL" \
 --set-secrets="MAPS_API_KEY=maps-api-key:latest"
 ```
 
 To access it for testing purposes, create a [Cloud Run IAP](https://docs.cloud.google.com/run/docs/securing/identity-aware-proxy-cloud-run) or use the [Cloud Run auth proxy](https://docs.cloud.google.com/sdk/gcloud/reference/run/services/proxy).
+
+```sh
+gcloud run services proxy cityscape --region $CLOUD_RUN_REGION --project $PROJECT_ID
+```
 
 ## Screenshot
 
