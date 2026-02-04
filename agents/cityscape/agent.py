@@ -98,7 +98,8 @@ city_drawer = LlmAgent(
         in the above path by following these instructions carefully: 
         
         Present a clear, 45° top-down isometric miniature 3D cartoon scene of [CITY], 
-        featuring its most iconic landmarks and architectural elements. Use soft, 
+        featuring its most iconic landmarks and architectural elements with a numer of
+        cute details to make it look interesting and recognizable. Use soft, 
         refined textures with realistic PBR materials and gentle, lifelike 
         lighting and shadows. Integrate the current weather conditions directly 
         into the city environment to create an immersive atmospheric mood.
