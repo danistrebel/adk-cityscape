@@ -136,33 +136,36 @@ def get_cloud_run_client_factory(agent_path: str):
     client_config = ClientConfig(httpx_client=async_client)
     return ClientFactory(client_config)
 
-city_trip_agent = RemoteA2aAgent(
-    name="city_trip_agent",
-    description="Agent that can recommend city trips.",
-    a2a_client_factory=get_cloud_run_client_factory(os.environ["A2A_CITY_TRIP_URL"]),
-    agent_card=os.environ["A2A_CITY_TRIP_URL"]+AGENT_CARD_WELL_KNOWN_PATH,
-)
-
 cityscape_agent = SequentialAgent(
     name='cityscape_agent',
     description="Creates AI-generated pictures of cities based on the current weather and their unique properties.",
     sub_agents=[city_info, city_drawer],
 )
 
+sub_agents = [cityscape_agent]
+trip_instruction = ""
+
+if "A2A_CITY_TRIP_URL" in os.environ:
+    city_trip_agent = RemoteA2aAgent(
+        name="city_trip_agent",
+        description="Agent that can recommend city trips.",
+        a2a_client_factory=get_cloud_run_client_factory(os.environ["A2A_CITY_TRIP_URL"]),
+        agent_card=os.environ["A2A_CITY_TRIP_URL"]+AGENT_CARD_WELL_KNOWN_PATH,
+    )
+    sub_agents.append(city_trip_agent)
+    trip_instruction = "* The user is asking for general travel advice use the city_trip_agent to help them figure out where to go."
+
 root_agent = LlmAgent(
     model=DEFAULT_MODEL,
     name="root_agent",
-    instruction="""
+    instruction=f"""
       <You are a helpful assistant that can motivate people to travel more
       
       If
-      1. The user is asking for a illustrated cityscape picture use the city_scape_agent to create a city scape with the current weather for a given city
-      2. The user is asking for general travel advice use the city_trip_agent to help them figure out where to go.
-      3. If the user asks something else explain your skills.
+      * The user is asking for a illustrated cityscape picture use the city_scape_agent to create a city scape with the current weather for a given city
+      {trip_instruction}
+      * If the user asks something else explain your skills.
       >
     """,
-    sub_agents=[
-        cityscape_agent, 
-        city_trip_agent
-    ]
+    sub_agents=sub_agents
 )
